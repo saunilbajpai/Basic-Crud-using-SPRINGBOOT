@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Form</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h2>Enter User Details</h2>
+    <form onsubmit="submitForm(event)">
+        <label for="name">Name:</label>
+        <input type="text" id="name" required>
+        <br><br>
+        <label for="email">Email:</label>
+        <input type="email" id="email" required>
+        <br><br>
+        <label for="tech">Tech:</label>
+        <input type="text" id="tech" required>
+        <br><br>
+        <button type="submit">Submit</button>
+    </form>
+
+    <div class="update-container">
+        <div class="update-tech">
+            <h2>Update User Tech</h2>
+            <label for="userid">User ID:</label>
+            <input type="number" id="userid" placeholder="Enter User ID" required>
+            <br><br>
+            <label for="updatetech">Update Tech:</label>
+            <input type="text" id="updatetech" placeholder="Enter New Tech" required>
+            <br><br>
+            <button onclick="updateUserTech()">Update</button>
+        </div>
+    
+        <div class="update-email">
+            <h2>Update User Email</h2>
+            <label for="userid2">User ID:</label>
+            <input type="number" id="userid2" placeholder="Enter User ID" required>
+            <br><br>
+            <label for="updateEmail">Update Email:</label>
+            <input type="email" id="updateEmail" placeholder="Enter New Email" required>
+            <br><br>
+            <button onclick="updateUserEmail()">Update</button>
+        </div>
+    </div>
+    
+
+    <h2>All Users</h2>
+    <button onclick="fetchUsers()">Load Users</button>
+    <ul id="userList"></ul>
+
+    <script>
+        // Your existing JavaScript code here
+        async function submitForm(event) {
+            event.preventDefault();
+            const name = document.getElementById("name").value;
+            const email = document.getElementById("email").value;
+            const tech = document.getElementById("tech").value;
+
+            const response = await fetch("/users/add", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ name: name, email: email ,tech: tech})
+            });
+
+            const result = await response.text();
+            alert(result);
+            fetchUsers(); // Refresh user list after adding
+        }
+        async function updateUserTech() {
+            const userid = document.getElementById("userid").value;
+            const newtech = document.getElementById("updatetech").value;
+            if (!userid || !newtech.trim()) {
+                alert("Please enter a valid user ID and technology value");
+                return;
+            }
+            try {
+                const response = await fetch(`/users/update-tech/${userid}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(newtech) // This sends the tech string in JSON format
+                });
+                const result = await response.text();
+                alert(result);
+                fetchUsers(); // Refresh list
+            } catch (error) {
+                console.error("Error updating tech:", error);
+                alert("Failed to update tech. Kindly check the console");
+            }
+        }
+        async function updateUserEmail(){
+            const userid = document.getElementById("userid2").value;
+            const newemail = document.getElementById("updateEmail").value;
+            if(!userid || !newemail.trim()){
+                alert("Please enter a valid user id and email");
+                return;
+            }
+            try{
+                const response = await fetch(`/users/update-email/${userid}`,{
+                    method:"PUT",
+                    headers:{
+                        "Content-Type":"application/json"
+                    },
+                    body:JSON.stringify(newemail)
+                });
+                const result = await response.text();
+                alert(result);
+                fetchUsers();
+            }catch(error){
+                console.error("Error updating email : ",error);
+                alert("Failed to update email.Kindly check the console");
+            }
+        }
+        async function fetchUsers() {
+            try {
+                const response = await fetch("/users/all");
+                if (!response.ok) throw new Error("Failed to fetch users");
+                
+                const users = await response.json();
+                const userList = document.getElementById("userList");
+                userList.innerHTML = ""; // Clear previous data
+                if (users.length === 0) {
+                    userList.innerHTML = "<li>No users found</li>";
+                    return;
+                }
+
+                users.forEach(user => {
+                    const li = document.createElement("li");
+                    li.innerHTML = `${user.id} - ${user.name} - ${user.email} -${user.tech}`;
+
+                    // Create Delete Button
+                    const deleteBtn = document.createElement("button");
+                    deleteBtn.textContent = "Delete";
+                    deleteBtn.className = "delete-btn";
+                    deleteBtn.onclick = () => deleteUser(user.id);
+
+                    li.appendChild(deleteBtn);
+                    userList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Error fetching users:", error);
+                alert("Error loading users. Check console for details.");
+            }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm(`Are you sure you want to delete ${id}?`)) return;
+            
+            try {
+                const response = await fetch(`/users/delete/${id}`, {
+                    method: "DELETE"
+                });
+
+                if (!response.ok) throw new Error("Failed to delete user");
+                
+                const result = await response.text();
+                alert(result);
+                fetchUsers(); // Refresh user list after deletion
+            } catch (error) {
+                console.error("Error deleting user:", error);
+                alert("Error deleting user. Check console for details.");
+            }
+        }
+    </script>
+</body>
+</html>
